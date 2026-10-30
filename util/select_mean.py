@@ -1,4 +1,3 @@
-import random
 import re
 
 from api.main_api import query_word
@@ -62,9 +61,9 @@ def select_mean(public_info) -> int:
             if sorted(option.replace(" ", '')) == sorted(mean.replace(" ", '')) or mean in option:
                 select_module.logger.info(f"匹配第{index + 1}个选项选项[{option}]")
                 return index
-    # 匹配失败 随机提交一个
-    select_module.logger.warning("匹配失败，随机提交")
-    return random.randint(0, len(options) - 1)
+    # 匹配失败交由上层兜底
+    select_module.logger.info("匹配失败，交由大模型兜底")
+    return None
 
 
 # select match word
@@ -78,8 +77,8 @@ def select_match_word(public_info, word_mean) -> int:
         for mean in public_info.word_means:
             if sorted(word_mean.replace(" ", '')) == sorted(mean.replace(" ", '')):
                 return public_info.source_option.index(word)
-    select_module.logger.error("匹配失败,猜第3个选项")
-    return 2
+    select_module.logger.info("匹配失败，交由大模型兜底")
+    return None
 
 
 def is_word_exist(public_info, option) -> bool:

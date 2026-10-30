@@ -1,3 +1,7 @@
+# 大模型兜底改造版
+
+本分支在原项目基础上新增可选的文本大模型兜底，默认关闭。配置方法和限制见 [大模型配置说明](docs/LLM_SETUP.md)。保留原项目署名与许可证。
+
 <div align="center">
 <img src="assets/icon.ico">
     <h1>Easy_Cidaren</h1>

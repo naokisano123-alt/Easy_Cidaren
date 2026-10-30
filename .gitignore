@@ -23,3 +23,8 @@ get token/fetch_token/capture.log
 
 # macOS
 .DS_Store
+
+# Local model configuration and credentials
+config/llm.local.json
+.env
+.env.*
