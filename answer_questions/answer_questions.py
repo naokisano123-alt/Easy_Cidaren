@@ -5,6 +5,7 @@ import json
 from urllib.parse import unquote
 
 from api.main_api import query_word, submit_result, next_exam
+from api.llm_answer import solve as solve_with_llm
 from log.log import Log
 from publicInfo.publicInfo import PublicInfo
 from decryptencrypt.debase64 import debase64
@@ -325,9 +326,9 @@ def full_sentence(public_info) -> int or str:
         else:
             if option['content'] == word:
                 return option_word
-    query_answer.logger.error("补全句子失败,猜第3个选项")
+    query_answer.logger.info("补全句子未匹配，尝试大模型兜底")
     # submit 1#0,0#2 or 1 应该分开写提升正确率
-    return public_info.exam['options'][2]['answer_tag']
+    return None
 
 
 # full word
@@ -348,8 +349,8 @@ def complete_sentence(public_info):
                 result = word_examples(public_info, [word])
                 if result:
                     return result
-    query_answer.logger.error(f"找不到答案,提交{word}")
-    return word
+    query_answer.logger.info("找不到拼写答案，尝试大模型兜底")
+    return None
 
 
 # mode 73: 多空首字母补全单词(提交JSON数组)
@@ -486,8 +487,8 @@ def answer(public_info, mode):
     if mode == 11:
         option = word_form_mean(public_info)
     elif mode == 13:
-        # guess option 没思路
-        option = 3
+        # Audio-only questions are not sent to the text model.
+        option = None
     elif mode == 15 or mode == 16 or mode == 21 or mode == 22:
         option = word_form_mean(public_info)
         # 英译汉
@@ -514,4 +515,6 @@ def answer(public_info, mode):
         query_answer.logger.error(f"其他题型{mode},程序退出")
         # 此处抛出异常
         raise Exception
+    if option is None:
+        option = solve_with_llm(public_info)
     return option
