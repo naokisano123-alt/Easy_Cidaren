@@ -37,7 +37,10 @@ def load_config():
     timeout = float(config.get('timeout_seconds', 15))
     if not 1 <= timeout <= 60:
         raise ValueError('invalid timeout')
-    return {'base_url': base, 'model': model, 'key': key, 'timeout': timeout}
+    provider = config.get('provider', 'compatible')
+    if provider not in {'compatible', 'deepseek'}:
+        raise ValueError('invalid provider')
+    return {'base_url': base, 'model': model, 'key': key, 'timeout': timeout, 'provider': provider}
 
 
 def _choices(exam):
@@ -155,20 +158,24 @@ def solve(public_info):
             return None
         prompt = PROMPT_PATH.read_text(encoding='utf-8')
         user_text = json.dumps(payload, ensure_ascii=False)
-        cache_key = (config['base_url'], config['model'], prompt, user_text)
+        cache_key = (config['base_url'], config['model'], config.get('provider', 'compatible'), prompt, user_text)
         if cache_key in _CACHE:
             _CACHE.move_to_end(cache_key)
             return _CACHE[cache_key]
         # Plain requests, not the platform's authenticated session. Do not follow
         # redirects carrying the API key to a different destination.
+        body = {'model': config['model'], 'messages': [
+            {'role': 'system', 'content': prompt},
+            {'role': 'user', 'content': user_text}],
+            'max_tokens': 256, 'stream': False}
+        if config.get('provider') == 'deepseek':
+            body['thinking'] = {'type': 'disabled'}
+            body['response_format'] = {'type': 'json_object'}
         with requests.Session() as session:
             response = session.post(
                 config['base_url'] + '/chat/completions',
                 headers={'Authorization': 'Bearer ' + config['key']},
-                json={'model': config['model'], 'messages': [
-                    {'role': 'system', 'content': prompt},
-                    {'role': 'user', 'content': user_text}],
-                    'max_tokens': 256, 'stream': False},
+                json=body,
                 timeout=(5, config['timeout']), allow_redirects=False)
             if response.status_code != 200:
                 logger.warning('LLM HTTP failure (%s); skipping', response.status_code)

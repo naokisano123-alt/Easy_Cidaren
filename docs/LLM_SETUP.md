@@ -6,18 +6,18 @@
 
 1. 安装项目原有依赖；此功能使用已有的 Requests，无额外依赖。
 2. 复制 `config/llm.example.json` 为 `config/llm.local.json`。
-3. 设置 `enabled` 为 `true`，填写服务商的 `base_url` 和 `model`。base_url 填 API 根地址（通常包含 `/v1`），不要包含 `/chat/completions`；必须使用 HTTPS。
+3. 设置 `enabled` 为 `true`。示例已预填 DeepSeek V4.1 Flash 官方服务：`provider: deepseek`、`base_url: https://api.deepseek.com`、`model: deepseek-flash`，密钥变量为 `DEEPSEEK_API_KEY`。如使用其他服务，改成 `provider: compatible`，并填写服务商的 `base_url` 和 `model`。base_url 填 API 根地址（通常包含 `/v1`），不要包含 `/chat/completions`；必须使用 HTTPS。
 4. 在启动程序的同一终端中设置环境变量。Windows PowerShell 示例：
 
 ```powershell
-$env:CIDAREN_LLM_API_KEY = "你的密钥"
+$env:DEEPSEEK_API_KEY = "你的密钥"
 python main.py
 ```
 
 macOS/Linux：
 
 ```bash
-export CIDAREN_LLM_API_KEY='你的密钥'
+export DEEPSEEK_API_KEY='你的密钥'
 python main.py
 ```
 
@@ -41,3 +41,17 @@ python -m unittest discover -s tests -v
 ```
 
 测试用模拟 API，不消耗额度，不连接词达人。正式验证需在本机配置模型服务，并确认其返回格式符合上述协议。
+
+## DeepSeek V4.1 Flash
+
+本项目直接发送 HTTP JSON。`provider: deepseek` 时额外发送 `thinking: {"type":"disabled"}` 和 `response_format: {"type":"json_object"}`；默认选择非思考模式，避免短答案的输出预算被思考占用。仍需通过本地答案校验，JSON 模式不会保证语义正确；空白 JSON 内容也会安全返回未匹配。
+
+`deepseek-flash` 是官方滚动别名，实际服务版本可能随官方升级。不能把展示名 `DeepSeek 4.1 Flash` 直接当作 API model 字符串。若经第三方平台调用，须按其文档配置地址、模型 ID 和参数支持情况。
+
+参考官方文档（核对于 2026-10-30）：
+
+- [官方接口地址与模型名](https://api-docs.deepseek.com/quick_start/agent_integrations/)
+- [思考模式开关](https://api-docs.deepseek.com/guides/thinking_mode/)
+- [JSON 输出](https://api-docs.deepseek.com/guides/json_mode/)
+
+尚未用真实密钥验证可用性和实际延迟。

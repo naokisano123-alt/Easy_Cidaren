@@ -75,8 +75,25 @@ class LLMTests(unittest.TestCase):
         self.assertFalse(kwargs['allow_redirects'])
         self.assertNotIn('SECRET', json.dumps(kwargs['json']))
 
+    def test_deepseek_parameters_and_cache_isolation(self):
+        session = self.call_model('{"status":"ok","choice_id":"0"}')
+        config = dict(self.config)
+        with patch.object(llm, 'load_config', return_value=config), patch.object(llm.requests, 'Session', return_value=session):
+            self.assertEqual(llm.solve(self.info), 7)
+            body = session.__enter__.return_value.post.call_args.kwargs['json']
+            self.assertNotIn('thinking', body)
+            self.assertNotIn('response_format', body)
+            config['provider'] = 'deepseek'
+            config['model'] = 'deepseek-flash'
+            self.assertEqual(llm.solve(self.info), 7)
+            body = session.__enter__.return_value.post.call_args.kwargs['json']
+            self.assertEqual(body['thinking'], {'type': 'disabled'})
+            self.assertEqual(body['response_format'], {'type': 'json_object'})
+            self.assertEqual(body['model'], 'deepseek-flash')
+            self.assertEqual(session.__enter__.return_value.post.call_count, 2)
+
     def test_failures_skip(self):
-        for content, status, finish in [('not json', 200, 'stop'), ('{}', 429, 'stop'),
+        for content, status, finish in [('not json', 200, 'stop'), ('   ', 200, 'stop'), ('{}', 429, 'stop'),
                 ('{"status":"unknown"}', 200, 'stop'), ('{}', 200, 'length')]:
             with self.subTest(content=content, status=status, finish=finish):
                 session = self.call_model(content, status, finish)
